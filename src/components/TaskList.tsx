@@ -8,44 +8,25 @@ export function TaskList() {
   const sortedSections = [...sections].sort((a, b) => a.order - b.order);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleDragOver = (event: any) => {
-    const { source, target } = event.operation;
-    console.log('[DragOver] source:', source?.id, 'target:', target?.id);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDragEnd = (event: any) => {
     const { source, target } = event.operation;
-    console.log('[DragEnd] source:', source?.id, 'target:', target?.id, 'full event:', event);
-    if (!source || !target) {
-      console.log('[DragEnd] EARLY RETURN: no source or target');
-      return;
-    }
+    if (!source || !target) return;
 
     const sourceId = String(source.id);
     const targetId = String(target.id);
-    console.log('[DragEnd] sourceId:', sourceId, 'targetId:', targetId);
 
     // Parse zone-based target IDs: "{taskId}::top", "{taskId}::center", "{taskId}::bottom"
     const zoneMatch = targetId.match(/^(.+)::(top|center|bottom)$/);
-    if (!zoneMatch) {
-      console.log('[DragEnd] NO ZONE MATCH for targetId:', targetId);
-      return;
-    }
+    if (!zoneMatch) return;
 
     const [, targetTaskId, zone] = zoneMatch;
-    console.log('[DragEnd] zone:', zone, 'targetTaskId:', targetTaskId);
-    if (targetTaskId === sourceId) {
-      console.log('[DragEnd] SAME TASK, skipping');
-      return;
-    }
+    if (targetTaskId === sourceId) return;
 
     const targetTask = tasks.find((t) => t.id === targetTaskId);
     if (!targetTask) return;
 
     if (zone === "center" && !targetTask.parentId) {
       // Drop on center → make subtask (only if target is top-level)
-      console.log('[DragEnd] MAKING SUBTASK:', sourceId, '->', targetTaskId);
       makeSubtask(sourceId, targetTaskId);
     } else {
       // Drop on top edge → insert before (order - 0.5)
@@ -57,7 +38,7 @@ export function TaskList() {
   };
 
   return (
-    <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DragDropProvider onDragEnd={handleDragEnd}>
       <div className="space-y-1">
         {sortedSections.map((section, index) => (
           <Section

@@ -299,22 +299,14 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
   },
 
   makeSubtask: (taskId: string, parentId: string) => {
-    console.log('[makeSubtask] called with taskId:', taskId, 'parentId:', parentId);
     set((state) => {
       const tasks = [...state.tasks];
       const taskIndex = tasks.findIndex((t) => t.id === taskId);
       const parentTask = tasks.find((t) => t.id === parentId);
-      console.log('[makeSubtask] taskIndex:', taskIndex, 'parentTask:', parentTask?.id, 'parentTask.parentId:', parentTask?.parentId);
-      if (taskIndex === -1 || !parentTask) {
-        console.log('[makeSubtask] ABORT: task or parent not found');
-        return state;
-      }
+      if (taskIndex === -1 || !parentTask) return state;
 
       // Don't allow nesting subtasks under subtasks
-      if (parentTask.parentId) {
-        console.log('[makeSubtask] ABORT: parent is already a subtask');
-        return state;
-      }
+      if (parentTask.parentId) return state;
 
       // If source has subtasks, reassign them to the new parent (flatten)
       const childSubtasks = tasks.filter((t) => t.parentId === taskId);
@@ -344,8 +336,6 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
           };
         }
       }
-
-      console.log('[makeSubtask] SUCCESS: making', taskId, 'subtask of', parentId, 'with', childSubtasks.length, 'children flattened');
 
       return { tasks };
     });

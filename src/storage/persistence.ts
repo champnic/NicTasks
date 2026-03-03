@@ -49,10 +49,8 @@ async function getDeviceId(): Promise<string> {
 
 export async function ensureAppDir(): Promise<void> {
   const appDir = await getAppDir();
-  console.log("App data dir:", appDir);
   const dirExists = await exists(appDir);
   if (!dirExists) {
-    console.log("Creating app dir:", appDir);
     await mkdir(appDir, { recursive: true });
   }
 }
@@ -61,17 +59,14 @@ export async function loadData(): Promise<AppData> {
   try {
     await ensureAppDir();
     const filePath = await getDataFilePath();
-    console.log("Loading data from:", filePath);
     const fileExists = await exists(filePath);
 
     if (!fileExists) {
-      console.log("No data file found, using defaults");
       return createDefaultData();
     }
 
     const content = await readTextFile(filePath);
     const data: AppData = JSON.parse(content);
-    console.log("Loaded", data.tasks.length, "tasks from disk");
 
     // Basic migration support
     if (!data.version || data.version < APP_DATA_VERSION) {
@@ -95,7 +90,6 @@ export async function saveData(data: AppData): Promise<void> {
 
     const json = JSON.stringify(data, null, 2);
     await writeTextFile(filePath, json);
-    console.log("Data saved successfully to", filePath);
   } catch (error) {
     console.error("Failed to save data:", error);
   }

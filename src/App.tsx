@@ -35,7 +35,6 @@ function App() {
           }
         });
         registered = true;
-        console.log("Global shortcut Ctrl+Alt+T registered");
       } catch (e) {
         console.warn("Failed to register global shortcut:", e);
       }
@@ -75,6 +74,7 @@ function App() {
               </svg>
             </div>
             <h1 className="text-base font-semibold text-slate-100 tracking-tight">NicTasks</h1>
+            <span className="text-[10px] text-slate-500 font-normal">v0.1.0</span>
           </div>
           <div className="flex items-center gap-2">
             <button
