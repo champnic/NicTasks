@@ -42,57 +42,6 @@ jobs:
           releaseDraft: true
           prerelease: false
 
-      - name: Upload updater artifacts
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $bundleDir = "src-tauri/target/release/bundle"
-
-          # Upload .sig files and .nsis.zip
-          $files = @(
-            "$bundleDir/nsis/NicTasks_$($tag.TrimStart('v'))_x64-setup.exe.sig",
-            "$bundleDir/nsis/NicTasks_$($tag.TrimStart('v'))_x64-setup.nsis.zip",
-            "$bundleDir/nsis/NicTasks_$($tag.TrimStart('v'))_x64-setup.nsis.zip.sig",
-            "$bundleDir/msi/NicTasks_$($tag.TrimStart('v'))_x64_en-US.msi.sig",
-            "$bundleDir/msi/NicTasks_$($tag.TrimStart('v'))_x64_en-US.msi.zip",
-            "$bundleDir/msi/NicTasks_$($tag.TrimStart('v'))_x64_en-US.msi.zip.sig"
-          )
-          foreach ($f in $files) {
-            if (Test-Path $f) {
-              Write-Host "Uploading $f..."
-              gh release upload $tag $f --clobber
-            } else {
-              Write-Host "Not found: $f"
-            }
-          }
-
-          # Generate latest.json for the updater
-          $version = $tag.TrimStart('v')
-          $nsisZipSigPath = "$bundleDir/nsis/NicTasks_${version}_x64-setup.nsis.zip.sig"
-          $msiZipSigPath = "$bundleDir/msi/NicTasks_${version}_x64_en-US.msi.zip.sig"
-
-          $nsisSig = if (Test-Path $nsisZipSigPath) { Get-Content $nsisZipSigPath -Raw } else { "" }
-          $msiSig = if (Test-Path $msiZipSigPath) { Get-Content $msiZipSigPath -Raw } else { "" }
-
-          $latest = @{
-            version = $version
-            notes = "See the assets below to download and install this version."
-            pub_date = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-            platforms = @{
-              "windows-x86_64" = @{
-                signature = $nsisSig.Trim()
-                url = "https://github.com/champnic/NicTasks/releases/download/$tag/NicTasks_${version}_x64-setup.nsis.zip"
-              }
-            }
-          } | ConvertTo-Json -Depth 4
-
-          $latest | Out-File -FilePath "latest.json" -Encoding utf8
-          Write-Host "Generated latest.json:"
-          Get-Content latest.json
-          gh release upload $tag latest.json --clobber
-
       - name: Publish release
         run: gh release edit ${{ github.ref_name }} --draft=false
         env:
