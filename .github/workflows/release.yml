@@ -41,7 +41,6 @@ jobs:
           releaseBody: "See the assets below to download and install this version."
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
 
       - name: Publish release
         run: gh release edit ${{ github.ref_name }} --draft=false
