@@ -46,9 +46,28 @@ npm run tauri build
 - [dnd-kit](https://dndkit.com/) — Drag and drop
 - [Tailwind CSS](https://tailwindcss.com/) — Styling
 
-## Auto-Update
+## Releasing
 
-The app auto-updates via GitHub Releases. Push a version tag (`v*`) to trigger a release build.
+The GitHub Actions workflow automatically builds and publishes a release when a version tag is pushed.
+
+1. Update the version in `package.json` and `src-tauri/tauri.conf.json`
+2. Update the version label in `src/App.tsx`
+3. Commit the changes
+4. Tag and push:
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+5. The workflow builds the app, signs it, and creates a GitHub Release
+
+The app auto-updates via GitHub Releases — users see an "Install & Restart" button when a new version is available.
+
+### Signing
+
+Release builds are signed using Tauri's updater signing. The following GitHub repository secrets are required:
+
+- `TAURI_SIGNING_PRIVATE_KEY` — the private signing key
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — the key password
 
 ## License
 
