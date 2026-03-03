@@ -15,6 +15,16 @@ export function TaskList() {
     const sourceId = String(source.id);
     const targetId = String(target.id);
 
+    // Handle section-level drops: "section-drop::{sectionId}"
+    const sectionDropMatch = targetId.match(/^section-drop::(.+)$/);
+    if (sectionDropMatch) {
+      const targetSectionId = sectionDropMatch[1];
+      const sectionTasks = tasks.filter((t) => t.sectionId === targetSectionId && !t.parentId);
+      const maxOrder = sectionTasks.reduce((max, t) => Math.max(max, t.order), -1);
+      reorderTask(sourceId, targetSectionId, maxOrder + 1);
+      return;
+    }
+
     // Parse zone-based target IDs: "{taskId}::top", "{taskId}::center", "{taskId}::bottom"
     const zoneMatch = targetId.match(/^(.+)::(top|center|bottom)$/);
     if (!zoneMatch) return;

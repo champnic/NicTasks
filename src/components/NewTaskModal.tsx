@@ -52,7 +52,7 @@ export function NewTaskModal() {
       requestAnimationFrame(() => {
         ta.selectionStart = ta.selectionEnd = start + 2;
       });
-    } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
     } else if (e.key === "Escape") {
@@ -126,7 +126,7 @@ export function NewTaskModal() {
         </div>
 
         <p className="text-[11px] text-slate-500 mt-3 text-center font-mono">
-          Ctrl+Enter → add · Esc → cancel
+          Enter → add · Ctrl+Enter → new line · Esc → cancel
         </p>
       </div>
     </div>

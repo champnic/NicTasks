@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useTaskStore } from "./store/taskStore";
+import { flushPendingSave } from "./store/taskStore";
 import { TaskList } from "./components/TaskList";
 import { NewTaskModal } from "./components/NewTaskModal";
 import { SectionManager } from "./components/SectionManager";
@@ -14,6 +15,27 @@ function App() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // Flush pending saves on window close to prevent data loss
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      flushPendingSave();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Also listen for Tauri close-requested event
+    let unlisten: (() => void) | undefined;
+    import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+      getCurrentWindow().onCloseRequested(async () => {
+        flushPendingSave();
+      }).then((fn) => { unlisten = fn; });
+    });
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      unlisten?.();
+    };
+  }, []);
 
   // Register global shortcut
   useEffect(() => {
@@ -34,6 +56,21 @@ function App() {
             setNewTaskModalOpen(true);
           }
         });
+        await register("Control+Alt+L", (event) => {
+          if (event.state === "Pressed") {
+            import("@tauri-apps/api/window").then(async ({ getCurrentWindow }) => {
+              const win = getCurrentWindow();
+              const focused = await win.isFocused();
+              if (focused) {
+                win.minimize();
+              } else {
+                await win.unminimize();
+                await win.show();
+                await win.setFocus();
+              }
+            });
+          }
+        });
         registered = true;
       } catch (e) {
         console.warn("Failed to register global shortcut:", e);
@@ -46,6 +83,7 @@ function App() {
       if (registered) {
         import("@tauri-apps/plugin-global-shortcut").then(({ unregister }) => {
           unregister("Control+Alt+T").catch(console.warn);
+          unregister("Control+Alt+L").catch(console.warn);
         });
       }
     };
@@ -77,6 +115,20 @@ function App() {
             <span className="text-[10px] text-slate-500 font-normal">v0.1.0</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                const { getAppDir } = await import("./storage/persistence");
+                const { openPath } = await import("@tauri-apps/plugin-opener");
+                const dir = await getAppDir();
+                await openPath(dir);
+              }}
+              className="text-slate-400 hover:text-slate-200 hover:bg-slate-800 p-1.5 rounded-md transition-all duration-150"
+              title="Open data folder"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2 7a2 2 0 012-2h5l2 2h5a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" />
+              </svg>
+            </button>
             <button
               onClick={toggleShowCompleted}
               className={`text-xs font-medium px-2.5 py-1.5 rounded-md transition-all duration-150 ${

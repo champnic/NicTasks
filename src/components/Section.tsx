@@ -82,10 +82,15 @@ export function Section({ id, name, isDefault, index }: SectionProps) {
     </svg>
   );
 
+  const { ref: sectionDropRef, isDropTarget: isSectionDropTarget } = useDroppable({
+    id: `section-drop::${id}`,
+    accept: ["task"],
+  });
+
   return (
     <div ref={sortableRef} className="mb-5">
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-2 group px-1">
+      <div ref={sectionDropRef} className={`flex items-center gap-2 mb-2 group px-1 py-1 rounded-md transition-colors duration-150 ${isSectionDropTarget ? 'bg-primary-500/20 ring-1 ring-primary-400/50' : ''}`}>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="text-slate-500 hover:text-slate-300 transition-colors p-0.5"
@@ -224,6 +229,7 @@ function DraggableTaskItem({
           id={task.id}
           title={task.title}
           completed={task.completed}
+          createdAt={task.createdAt}
           subtasks={subtasks}
         />
       </div>

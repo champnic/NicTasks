@@ -6,7 +6,7 @@ import {
   readDir,
   remove,
 } from "@tauri-apps/plugin-fs";
-import { documentDir } from "@tauri-apps/api/path";
+import { documentDir, homeDir } from "@tauri-apps/api/path";
 import { AppData, APP_DATA_VERSION, DEFAULT_SECTIONS } from "../types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,12 +18,26 @@ let deviceId: string | null = null;
 
 async function getDocDir(): Promise<string> {
   if (!cachedDocDir) {
+    // Prefer OneDrive-synced Documents if it exists, so the app
+    // uses the same path regardless of OS folder-redirection settings.
+    const home = await homeDir();
+    const oneDrivePaths = [
+      `${home}\\OneDrive - Microsoft\\Documents`,
+      `${home}\\OneDrive\\Documents`,
+    ];
+    for (const candidate of oneDrivePaths) {
+      if (await exists(candidate)) {
+        cachedDocDir = candidate;
+        return cachedDocDir;
+      }
+    }
+    // Fall back to OS default Documents folder
     cachedDocDir = await documentDir();
   }
   return cachedDocDir;
 }
 
-async function getAppDir(): Promise<string> {
+export async function getAppDir(): Promise<string> {
   const docDir = await getDocDir();
   return `${docDir}\\${APP_FOLDER}`;
 }

@@ -7,11 +7,29 @@ interface TaskItemProps {
   id: string;
   title: string;
   completed: boolean;
+  createdAt: string;
   dragHandleRef?: React.Ref<HTMLButtonElement>;
   subtasks?: Task[];
 }
 
-export function TaskItem({ id, title, completed, dragHandleRef, subtasks }: TaskItemProps) {
+function formatElapsed(dateStr: string): string {
+  const created = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths}mo`;
+  const diffYears = Math.floor(diffDays / 365);
+  return `${diffYears}y`;
+}
+
+export function TaskItem({ id, title, completed, createdAt, dragHandleRef, subtasks }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,7 +99,7 @@ export function TaskItem({ id, title, completed, dragHandleRef, subtasks }: Task
       requestAnimationFrame(() => {
         ta.selectionStart = ta.selectionEnd = start + 2;
       });
-    } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSave();
     } else if (e.key === "Escape") {
@@ -147,7 +165,7 @@ export function TaskItem({ id, title, completed, dragHandleRef, subtasks }: Task
               <span className="text-[11px] text-slate-500">
                 indent for sub-tasks
               </span>
-              <span className="text-[11px] text-slate-500 font-mono">Ctrl+Enter to save</span>
+              <span className="text-[11px] text-slate-500 font-mono">Enter to save</span>
             </div>
           </div>
         ) : (
@@ -158,6 +176,13 @@ export function TaskItem({ id, title, completed, dragHandleRef, subtasks }: Task
             onClick={handleStartEdit}
           >
             {title}
+          </span>
+        )}
+
+        {/* Elapsed time */}
+        {!isEditing && (
+          <span className="text-[10px] text-slate-600 shrink-0 tabular-nums" title={new Date(createdAt).toLocaleString()}>
+            {formatElapsed(createdAt)}
           </span>
         )}
 

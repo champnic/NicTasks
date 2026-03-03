@@ -43,7 +43,7 @@ export function AddTask({ sectionId }: AddTaskProps) {
       requestAnimationFrame(() => {
         ta.selectionStart = ta.selectionEnd = start + 2;
       });
-    } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
     } else if (e.key === "Escape") {
@@ -74,7 +74,7 @@ export function AddTask({ sectionId }: AddTaskProps) {
             </span>
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-slate-500 font-mono">
-                Ctrl+Enter
+                Enter
               </span>
               <button
                 onClick={handleSubmit}

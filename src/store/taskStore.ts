@@ -61,6 +61,16 @@ function debouncedSave(store: TaskStore) {
   }, 500);
 }
 
+/** Flush any pending debounced save immediately. Called on window close. */
+export function flushPendingSave() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+    const store = useTaskStore.getState();
+    store.persist();
+  }
+}
+
 export const useTaskStore = create<TaskStore>()((set, get) => ({
   sections: [...DEFAULT_SECTIONS],
   tasks: [],
