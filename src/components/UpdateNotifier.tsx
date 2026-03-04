@@ -6,6 +6,8 @@ export function UpdateNotifier() {
 
   useEffect(() => {
     checkForUpdates();
+    const interval = setInterval(checkForUpdates, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   async function checkForUpdates() {
