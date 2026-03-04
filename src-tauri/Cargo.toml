@@ -1,6 +1,6 @@
 [package]
 name = "nictasks"
-version = "0.1.2"
+version = "0.1.3"
 description = "Simple task management app"
 authors = ["Champnic"]
 edition = "2021"
