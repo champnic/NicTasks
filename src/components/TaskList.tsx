@@ -3,7 +3,7 @@ import { useTaskStore } from "../store/taskStore";
 import { Section } from "./Section";
 
 export function TaskList() {
-  const { sections, tasks, reorderTask, makeSubtask } = useTaskStore();
+  const { sections, tasks, reorderTask, makeSubtask, reorderSection } = useTaskStore();
 
   const sortedSections = [...sections].sort((a, b) => a.order - b.order);
 
@@ -14,6 +14,23 @@ export function TaskList() {
 
     const sourceId = String(source.id);
     const targetId = String(target.id);
+
+    // Handle section reorder (sortable sections)
+    const sourceSectionMatch = sourceId.match(/^section-(.+)$/);
+    if (sourceSectionMatch) {
+      const targetSectionMatch = targetId.match(/^section-(.+)$/);
+      if (targetSectionMatch) {
+        const sourceSectionId = sourceSectionMatch[1];
+        const targetSectionId = targetSectionMatch[1];
+        if (sourceSectionId !== targetSectionId) {
+          const targetSection = sortedSections.find((s) => s.id === targetSectionId);
+          if (targetSection != null) {
+            reorderSection(sourceSectionId, targetSection.order);
+          }
+        }
+      }
+      return;
+    }
 
     // Handle section-level drops: "section-drop::{sectionId}"
     const sectionDropMatch = targetId.match(/^section-drop::(.+)$/);

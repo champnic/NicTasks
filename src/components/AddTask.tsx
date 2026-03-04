@@ -43,7 +43,17 @@ export function AddTask({ sectionId }: AddTaskProps) {
       requestAnimationFrame(() => {
         ta.selectionStart = ta.selectionEnd = start + 2;
       });
-    } else if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) {
+    } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      const ta = e.currentTarget;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const newValue = value.substring(0, start) + "\n" + value.substring(end);
+      setValue(newValue);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = start + 1;
+      });
+    } else if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
     } else if (e.key === "Escape") {

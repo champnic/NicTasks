@@ -39,39 +39,66 @@ function App() {
 
   // Register global shortcut
   useEffect(() => {
-    let registered = false;
+    let cancelled = false;
+    let unregisterFns: { unregT: (() => Promise<void>) | null; unregL: (() => Promise<void>) | null } = { unregT: null, unregL: null };
+    let unlistenFocus: (() => void) | null = null;
+
+    // Track focus state via events since isFocused() is unreliable during global hotkey handlers
+    let windowHasFocus = true;
 
     async function registerShortcut() {
       try {
-        const { register } = await import(
+        const { register, isRegistered, unregister } = await import(
           "@tauri-apps/plugin-global-shortcut"
         );
-        await register("Control+Alt+T", (event) => {
+        if (cancelled) return;
+
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+
+        // Track focus state via window events
+        unlistenFocus = await win.onFocusChanged(({ payload: focused }) => {
+          windowHasFocus = focused;
+        });
+
+        // Unregister first in case of StrictMode double-mount
+        if (await isRegistered("Control+Alt+T")) {
+          await unregister("Control+Alt+T");
+        }
+        if (await isRegistered("Control+Alt+L")) {
+          await unregister("Control+Alt+L");
+        }
+        if (cancelled) return;
+
+        await register("Control+Alt+T", async (event) => {
           if (event.state === "Pressed") {
-            import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
-              const win = getCurrentWindow();
-              win.show();
-              win.setFocus();
-            });
+            await win.unminimize();
+            await win.show();
+            await win.setFocus();
             setNewTaskModalOpen(true);
           }
         });
-        await register("Control+Alt+L", (event) => {
+        unregisterFns.unregT = () => unregister("Control+Alt+T");
+
+        await register("Control+Alt+L", async (event) => {
           if (event.state === "Pressed") {
-            import("@tauri-apps/api/window").then(async ({ getCurrentWindow }) => {
-              const win = getCurrentWindow();
-              const focused = await win.isFocused();
-              if (focused) {
-                win.minimize();
-              } else {
-                await win.unminimize();
-                await win.show();
-                await win.setFocus();
-              }
-            });
+            const minimized = await win.isMinimized();
+            console.log(`[Ctrl+Alt+L] minimized=${minimized} windowHasFocus=${windowHasFocus}`);
+            if (minimized) {
+              await win.unminimize();
+              await win.show();
+              await win.setFocus();
+            } else if (windowHasFocus) {
+              await win.minimize();
+            } else {
+              await win.show();
+              await win.setFocus();
+            }
           }
         });
-        registered = true;
+        unregisterFns.unregL = () => unregister("Control+Alt+L");
+
+        console.log("[Shortcuts] Ctrl+Alt+T and Ctrl+Alt+L registered successfully");
       } catch (e) {
         console.warn("Failed to register global shortcut:", e);
       }
@@ -80,12 +107,10 @@ function App() {
     registerShortcut();
 
     return () => {
-      if (registered) {
-        import("@tauri-apps/plugin-global-shortcut").then(({ unregister }) => {
-          unregister("Control+Alt+T").catch(console.warn);
-          unregister("Control+Alt+L").catch(console.warn);
-        });
-      }
+      cancelled = true;
+      unregisterFns.unregT?.().catch(console.warn);
+      unregisterFns.unregL?.().catch(console.warn);
+      unlistenFocus?.();
     };
   }, [setNewTaskModalOpen]);
 
@@ -112,7 +137,7 @@ function App() {
               </svg>
             </div>
             <h1 className="text-base font-semibold text-slate-100 tracking-tight">NicTasks</h1>
-            <span className="text-[10px] text-slate-500 font-normal">v0.1.3</span>
+            <span className="text-[10px] text-slate-500 font-normal">v0.1.4</span>
           </div>
           <div className="flex items-center gap-2">
             <button
