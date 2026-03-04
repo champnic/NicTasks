@@ -137,7 +137,7 @@ function App() {
               </svg>
             </div>
             <h1 className="text-base font-semibold text-slate-100 tracking-tight">NicTasks</h1>
-            <span className="text-[10px] text-slate-500 font-normal">v0.1.4</span>
+            <span className="text-[10px] text-slate-500 font-normal">v0.1.5</span>
           </div>
           <div className="flex items-center gap-2">
             <button

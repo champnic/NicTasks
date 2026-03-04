@@ -5,15 +5,25 @@ export function NewTaskModal() {
   const { newTaskModalOpen, setNewTaskModalOpen, addTasks, sections } =
     useTaskStore();
   const [value, setValue] = useState("");
-  const [sectionId, setSectionId] = useState("today");
+  const [error, setError] = useState<string | null>(null);
+  const sortedSections = [...sections].sort((a, b) => a.order - b.order);
+  const defaultSectionId = localStorage.getItem("nictasks-last-section") || sortedSections[0]?.id || "today";
+  // Ensure the saved section still exists
+  const validDefault = sortedSections.some((s) => s.id === defaultSectionId) ? defaultSectionId : sortedSections[0]?.id || "today";
+  const [sectionId, setSectionId] = useState(validDefault);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (newTaskModalOpen && textareaRef.current) {
       textareaRef.current.focus();
       setValue("");
-      setSectionId("today");
+      setError(null);
+      // Restore last-used section
+      const saved = localStorage.getItem("nictasks-last-section");
+      const valid = saved && sortedSections.some((s) => s.id === saved) ? saved : sortedSections[0]?.id || "today";
+      setSectionId(valid);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTaskModalOpen]);
 
   // Auto-resize textarea
@@ -27,6 +37,11 @@ export function NewTaskModal() {
 
   if (!newTaskModalOpen) return null;
 
+  const handleSectionChange = (id: string) => {
+    setSectionId(id);
+    localStorage.setItem("nictasks-last-section", id);
+  };
+
   const handleSubmit = () => {
     const lines = value.split("\n").filter((l) => l.trim().length > 0);
     if (lines.length === 0) return;
@@ -36,9 +51,13 @@ export function NewTaskModal() {
       return { title: line.trim(), indent: isIndented };
     });
 
-    addTasks(entries, sectionId);
-    setValue("");
-    setNewTaskModalOpen(false);
+    try {
+      addTasks(entries, sectionId);
+      setValue("");
+      setNewTaskModalOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save tasks");
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -70,7 +89,6 @@ export function NewTaskModal() {
     }
   };
 
-  const sortedSections = [...sections].sort((a, b) => a.order - b.order);
   const lineCount = value.split("\n").filter((l) => l.trim().length > 0).length;
 
   return (
@@ -102,22 +120,29 @@ export function NewTaskModal() {
           {sortedSections.map((s) => (
             <button
               key={s.id}
-              onClick={() => setSectionId(s.id)}
-              className={`flex-1 text-xs font-medium px-3 py-2 rounded-lg border transition-all duration-150 ${
+              onClick={() => handleSectionChange(s.id)}
+              className={`flex-1 text-xs font-semibold px-3 py-2 rounded-lg border transition-all duration-150 ${
                 sectionId === s.id
-                  ? "bg-primary-900/40 border-primary-500 text-primary-200 shadow-sm"
+                  ? "bg-primary-500 border-primary-400 text-white shadow-sm"
                   : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-600"
               }`}
             >
               {s.name}
             </button>
-          ))}
-        </div>
+          ))
+        }</div>
 
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">
-            {lineCount > 0 ? `${lineCount} ${lineCount === 1 ? "task" : "tasks"}` : ""}
-          </span>
+          <div>
+            {error && (
+              <span className="text-[11px] text-red-400 font-medium">{error}</span>
+            )}
+            {!error && (
+              <span className="text-[11px] text-slate-500">
+                {lineCount > 0 ? `${lineCount} ${lineCount === 1 ? "task" : "tasks"}` : ""}
+              </span>
+            )}
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => setNewTaskModalOpen(false)}
