@@ -5,6 +5,7 @@ import {
   writeTextFile,
   readDir,
   remove,
+  watch,
 } from "@tauri-apps/plugin-fs";
 import { documentDir, homeDir } from "@tauri-apps/api/path";
 import { AppData, APP_DATA_VERSION, DEFAULT_SECTIONS } from "../types";
@@ -104,6 +105,7 @@ export async function saveData(data: AppData): Promise<void> {
 
     const json = JSON.stringify(data, null, 2);
     await writeTextFile(filePath, json);
+    markLocalSave();
   } catch (error) {
     console.error("Failed to save data:", error);
   }
@@ -189,4 +191,51 @@ export async function mergeConflictFile(
     console.error("Failed to merge conflict file:", error);
     return currentData;
   }
+}
+
+// Track when we last saved locally so we can ignore our own writes
+let lastLocalSaveTime = 0;
+
+export function markLocalSave() {
+  lastLocalSaveTime = Date.now();
+}
+
+/**
+ * Watch tasks.json for external changes (e.g. OneDrive sync from another machine).
+ * Calls onExternalChange when the file is modified by another device.
+ * Returns an unwatch function.
+ */
+export async function watchDataFile(
+  onExternalChange: (data: AppData) => void
+): Promise<() => void> {
+  const filePath = await getDataFilePath();
+  const localDeviceId = await getDeviceId();
+
+  const unwatch = await watch(filePath, async (event) => {
+    // Only react to modify events
+    const kind = event.type;
+    const isModify =
+      kind === "any" ||
+      (typeof kind === "object" && "modify" in kind);
+
+    if (!isModify) return;
+
+    // Ignore changes within 2s of our own save to avoid reloading our own writes
+    if (Date.now() - lastLocalSaveTime < 2000) return;
+
+    try {
+      const content = await readTextFile(filePath);
+      const data: AppData = JSON.parse(content);
+
+      // Only reload if the change came from a different device
+      if (data.deviceId && data.deviceId !== localDeviceId) {
+        console.log("External change detected from device:", data.deviceId);
+        onExternalChange(data);
+      }
+    } catch {
+      // File might be mid-write, ignore
+    }
+  }, { delayMs: 1000 });
+
+  return unwatch;
 }

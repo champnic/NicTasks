@@ -12,6 +12,7 @@ import {
   saveData,
   scanForConflicts,
   mergeConflictFile,
+  watchDataFile,
 } from "../storage/persistence";
 
 interface TaskStore {
@@ -90,6 +91,14 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
         isLoaded: true,
         conflictFiles: conflicts,
       });
+
+      // Watch for external changes (e.g. OneDrive sync from another machine)
+      watchDataFile((externalData) => {
+        set({
+          sections: externalData.sections,
+          tasks: externalData.tasks,
+        });
+      }).catch((e) => console.warn("File watch setup failed:", e));
     } catch (error) {
       console.error("Failed to initialize store:", error);
       set({ isLoaded: true });
@@ -400,16 +409,17 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
       const sectionIndex = sections.findIndex((s) => s.id === sectionId);
       if (sectionIndex === -1) return state;
 
-      sections[sectionIndex] = { ...sections[sectionIndex], order: newOrder };
+      // Remove the section from its current position
+      const [moved] = sections.splice(sectionIndex, 1);
 
-      // Re-number all sections
-      const sorted = sections.sort((a, b) => a.order - b.order);
-      sorted.forEach((s, i) => {
-        const idx = sections.findIndex((ss) => ss.id === s.id);
-        sections[idx] = { ...sections[idx], order: i };
-      });
+      // Insert at the new position
+      const clampedOrder = Math.max(0, Math.min(newOrder, sections.length));
+      sections.splice(clampedOrder, 0, moved);
 
-      return { sections };
+      // Re-number all sections sequentially
+      const updated = sections.map((s, i) => ({ ...s, order: i }));
+
+      return { sections: updated };
     });
     debouncedSave(get());
   },
