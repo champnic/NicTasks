@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent, ReactNode } from "react";
 import { useTaskStore } from "../store/taskStore";
 import { useDraggable, useDroppable } from "@dnd-kit/react";
 import { Task } from "../types";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 interface TaskItemProps {
   id: string;
@@ -27,6 +28,48 @@ function formatElapsed(dateStr: string): string {
   if (diffMonths < 12) return `${diffMonths}mo`;
   const diffYears = Math.floor(diffDays / 365);
   return `${diffYears}y`;
+}
+
+const URL_REGEX = /https?:\/\/[^\s)>]+/g;
+
+const LinkIcon = () => (
+  <svg className="inline w-3 h-3 ml-0.5 -mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  </svg>
+);
+
+function renderTitle(text: string): ReactNode {
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const regex = new RegExp(URL_REGEX);
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const url = match[0];
+    const linkUrl = url;
+    parts.push(
+      <a
+        key={match.index}
+        href={linkUrl}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openUrl(linkUrl).catch((err) => console.error('Failed to open URL:', err));
+        }}
+        className="text-primary-400 hover:text-primary-300 hover:underline inline-flex items-center cursor-pointer"
+      >
+        Link<LinkIcon />
+      </a>
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : text;
 }
 
 export function TaskItem({ id, title, completed, createdAt, dragHandleRef, subtasks }: TaskItemProps) {
@@ -175,7 +218,7 @@ export function TaskItem({ id, title, completed, createdAt, dragHandleRef, subta
             }`}
             onClick={handleStartEdit}
           >
-            {title}
+            {renderTitle(title)}
           </span>
         )}
 
@@ -319,7 +362,7 @@ function SubTaskItem({ task }: { task: Task }) {
           }`}
           onClick={handleStartEdit}
         >
-          {task.title}
+          {renderTitle(task.title)}
         </span>
       )}
 

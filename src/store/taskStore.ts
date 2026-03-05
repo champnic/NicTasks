@@ -56,8 +56,14 @@ interface TaskStore {
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function debouncedSave(store: TaskStore) {
+  if (!store.isLoaded) {
+    console.log('[debouncedSave] skipping — store not loaded yet');
+    return;
+  }
   if (saveTimeout) clearTimeout(saveTimeout);
+  console.log('[debouncedSave] scheduling save in 500ms');
   saveTimeout = setTimeout(() => {
+    console.log('[debouncedSave] executing persist now');
     store.persist();
   }, 500);
 }
@@ -68,7 +74,7 @@ export function flushPendingSave() {
     clearTimeout(saveTimeout);
     saveTimeout = null;
     const store = useTaskStore.getState();
-    store.persist();
+    if (store.isLoaded) store.persist();
   }
 }
 
@@ -107,6 +113,7 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
 
   persist: async () => {
     const { sections, tasks } = get();
+    console.log('[persist] saving sections:', sections.map(s => `${s.id}(order=${s.order})`));
     const data: AppData = {
       version: APP_DATA_VERSION,
       sections,
@@ -115,6 +122,7 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
       deviceId: localStorage.getItem("nictasks-device-id") || "unknown",
     };
     await saveData(data);
+    console.log('[persist] save complete');
   },
 
   addTask: (title: string, sectionId: string, parentId?: string) => {
@@ -391,33 +399,48 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
   deleteSection: (id: string) => {
     const state = get();
     const section = state.sections.find((s) => s.id === id);
-    if (!section || section.isDefault) return;
+    if (!section) return;
 
-    // Move tasks from deleted section to "today"
+    // Don't allow deleting the last section
+    if (state.sections.length <= 1) return;
+
+    // Move tasks to the first remaining section
+    const fallback = state.sections.find((s) => s.id !== id);
+    const fallbackId = fallback?.id || "today";
+
     set((state) => ({
       sections: state.sections.filter((s) => s.id !== id),
       tasks: state.tasks.map((t) =>
-        t.sectionId === id ? { ...t, sectionId: "today" } : t
+        t.sectionId === id ? { ...t, sectionId: fallbackId } : t
       ),
     }));
     debouncedSave(get());
   },
 
   reorderSection: (sectionId: string, newOrder: number) => {
+    console.log('[reorderSection] called with sectionId:', sectionId, 'newOrder:', newOrder);
     set((state) => {
-      const sections = [...state.sections];
+      // Sort by order first so array positions correspond to visual order
+      const sections = [...state.sections].sort((a, b) => a.order - b.order);
+      console.log('[reorderSection] sections before (sorted):', sections.map(s => `${s.id}(order=${s.order})`));
       const sectionIndex = sections.findIndex((s) => s.id === sectionId);
-      if (sectionIndex === -1) return state;
+      if (sectionIndex === -1) {
+        console.log('[reorderSection] section not found, aborting');
+        return state;
+      }
 
       // Remove the section from its current position
       const [moved] = sections.splice(sectionIndex, 1);
+      console.log('[reorderSection] removed', moved.id, 'from index', sectionIndex, ', remaining:', sections.map(s => s.id));
 
       // Insert at the new position
       const clampedOrder = Math.max(0, Math.min(newOrder, sections.length));
       sections.splice(clampedOrder, 0, moved);
+      console.log('[reorderSection] inserted at index', clampedOrder, ', array now:', sections.map(s => s.id));
 
       // Re-number all sections sequentially
       const updated = sections.map((s, i) => ({ ...s, order: i }));
+      console.log('[reorderSection] final order:', updated.map(s => `${s.id}(order=${s.order})`));
 
       return { sections: updated };
     });

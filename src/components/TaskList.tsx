@@ -10,24 +10,30 @@ export function TaskList() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDragEnd = (event: any) => {
     const { source, target } = event.operation;
-    if (!source || !target) return;
+    console.log('[DragEnd] source id:', source?.id, 'target id:', target?.id);
+    if (!source || !target) {
+      console.log('[DragEnd] No source or target, aborting');
+      return;
+    }
 
     const sourceId = String(source.id);
     const targetId = String(target.id);
+    console.log('[DragEnd] sourceId:', sourceId, 'targetId:', targetId);
 
     // Handle section reorder (sortable sections)
     const sourceSectionMatch = sourceId.match(/^section-(.+)$/);
     if (sourceSectionMatch) {
-      const targetSectionMatch = targetId.match(/^section-(.+)$/);
-      if (targetSectionMatch) {
-        const sourceSectionId = sourceSectionMatch[1];
-        const targetSectionId = targetSectionMatch[1];
-        if (sourceSectionId !== targetSectionId) {
-          const targetSection = sortedSections.find((s) => s.id === targetSectionId);
-          if (targetSection != null) {
-            reorderSection(sourceSectionId, targetSection.order);
-          }
-        }
+      // With @dnd-kit/react sortable, items reorder visually during drag.
+      // source.sortable has initialIndex (where it started) and index (where it ended up).
+      const fromIndex = source?.sortable?.initialIndex;
+      const toIndex = source?.sortable?.index;
+      const sourceSectionId = sourceSectionMatch[1];
+      console.log('[DragEnd] Section sortable:', sourceSectionId, 'fromIndex:', fromIndex, 'toIndex:', toIndex);
+      if (fromIndex !== undefined && toIndex !== undefined && fromIndex !== toIndex) {
+        console.log('[DragEnd] Reordering section', sourceSectionId, 'from', fromIndex, 'to', toIndex, '| sortedSections:', sortedSections.map(s => `${s.id}(${s.order})`));
+        reorderSection(sourceSectionId, toIndex);
+      } else {
+        console.log('[DragEnd] Section did not move (fromIndex === toIndex)');
       }
       return;
     }
@@ -72,7 +78,6 @@ export function TaskList() {
             key={section.id}
             id={section.id}
             name={section.name}
-            isDefault={section.isDefault}
             index={index}
           />
         ))}

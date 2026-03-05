@@ -8,11 +8,10 @@ import { useSortable } from "@dnd-kit/react/sortable";
 interface SectionProps {
   id: string;
   name: string;
-  isDefault: boolean;
   index: number;
 }
 
-export function Section({ id, name, isDefault, index }: SectionProps) {
+export function Section({ id, name, index }: SectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(name);
@@ -124,7 +123,7 @@ export function Section({ id, name, isDefault, index }: SectionProps) {
         ) : (
           <h2
             className="text-[13px] font-semibold text-slate-300 cursor-pointer select-none uppercase tracking-wider"
-            onDoubleClick={() => !isDefault && setIsRenaming(true)}
+            onDoubleClick={() => setIsRenaming(true)}
           >
             {name}
           </h2>
@@ -134,15 +133,13 @@ export function Section({ id, name, isDefault, index }: SectionProps) {
           {totalTasks > 0 && totalTasks}{completedCount > 0 && ` · ${completedCount} done`}
         </span>
 
-        {!isDefault && (
-          <button
-            onClick={() => deleteSection(id)}
-            className="ml-auto opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-all duration-150 text-[12px] font-medium px-1.5 py-0.5 rounded hover:bg-red-900/30"
-            aria-label="Delete section"
-          >
-            Delete
-          </button>
-        )}
+        <button
+          onClick={() => deleteSection(id)}
+          className="ml-auto opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-all duration-150 text-[12px] font-medium px-1.5 py-0.5 rounded hover:bg-red-900/30"
+          aria-label="Delete section"
+        >
+          Delete
+        </button>
       </div>
 
       {/* Tasks list */}

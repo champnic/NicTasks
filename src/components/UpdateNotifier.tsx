@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export function UpdateNotifier() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
@@ -15,6 +16,7 @@ export function UpdateNotifier() {
       const { check } = await import("@tauri-apps/plugin-updater");
       const update = await check();
       if (update) {
+        setUpdateVersion(update.version);
         setUpdateAvailable(true);
       }
     } catch (e) {
@@ -52,8 +54,8 @@ export function UpdateNotifier() {
         </svg>
       </div>
       <div className="flex-1">
-        <p className="text-sm text-primary-200 font-semibold">Update available</p>
-        <p className="text-xs text-primary-400">A new version is ready to install.</p>
+        <p className="text-sm text-white font-semibold">Update available{updateVersion ? ` — v${updateVersion}` : ""}</p>
+        <p className="text-xs text-slate-300">A new version is ready to install.</p>
       </div>
       <button
         onClick={installUpdate}

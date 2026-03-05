@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTaskStore } from "./store/taskStore";
 import { flushPendingSave } from "./store/taskStore";
 import { TaskList } from "./components/TaskList";
@@ -128,45 +128,10 @@ function App() {
   return (
     <div className="min-h-screen bg-surface">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-md border-b border-slate-700/80 shadow-sm">
-        <div className="max-w-2xl mx-auto px-5 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            </div>
-            <h1 className="text-base font-semibold text-slate-100 tracking-tight">NicTasks</h1>
-            <span className="text-[10px] text-slate-500 font-normal">v0.1.6</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={async () => {
-                const { getAppDir } = await import("./storage/persistence");
-                const { openPath } = await import("@tauri-apps/plugin-opener");
-                const dir = await getAppDir();
-                await openPath(dir);
-              }}
-              className="text-slate-400 hover:text-slate-200 hover:bg-slate-800 p-1.5 rounded-md transition-all duration-150"
-              title="Open data folder"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2 7a2 2 0 012-2h5l2 2h5a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" />
-              </svg>
-            </button>
-            <button
-              onClick={toggleShowCompleted}
-              className={`text-xs font-medium px-2.5 py-1.5 rounded-md transition-all duration-150 ${
-                showCompleted
-                  ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
-            >
-              {showCompleted ? "Hide done" : "Show done"}
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        showCompleted={showCompleted}
+        toggleShowCompleted={toggleShowCompleted}
+      />
 
       {/* Main content */}
       <main className="max-w-2xl mx-auto px-5 py-5">
@@ -179,14 +144,104 @@ function App() {
       {/* New task modal */}
       <NewTaskModal />
 
-      {/* Shortcut hint */}
-      <div className="fixed bottom-3 right-3 text-[11px] text-slate-500 font-mono bg-slate-800/60 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-700/50">
-        Ctrl+Alt+T
-      </div>
-
       {/* Error log panel */}
       <LogPanel />
     </div>
+  );
+}
+
+function Header({ showCompleted, toggleShowCompleted }: { showCompleted: boolean; toggleShowCompleted: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  return (
+    <header className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-md border-b border-slate-700/80 shadow-sm">
+      <div className="max-w-2xl mx-auto px-5 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <h1 className="text-base font-semibold text-slate-100 tracking-tight">NicTasks</h1>
+          <span className="text-[10px] text-slate-500 font-normal">v0.1.6</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Show/Hide Done toggle */}
+          <button
+            onClick={toggleShowCompleted}
+            className={`text-xs font-medium px-2.5 py-1.5 rounded-md transition-all duration-150 ${
+              showCompleted
+                ? "bg-primary-600/30 text-primary-300 border border-primary-500/40 hover:bg-primary-600/40"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            }`}
+            title={showCompleted ? "Hide completed tasks" : "Show completed tasks"}
+          >
+            {showCompleted ? "✓ Done" : "Show done"}
+          </button>
+
+          {/* Three-dot menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-slate-400 hover:text-slate-200 hover:bg-slate-800 p-1.5 rounded-md transition-all duration-150"
+              title="Menu"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50">
+                {/* Open JSON folder */}
+                <button
+                  onClick={async () => {
+                    setMenuOpen(false);
+                    const { getAppDir } = await import("./storage/persistence");
+                    const { openPath } = await import("@tauri-apps/plugin-opener");
+                    const dir = await getAppDir();
+                    await openPath(dir);
+                  }}
+                  className="w-full text-left px-3 py-2 text-[13px] text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2 transition-colors"
+                >
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2 7a2 2 0 012-2h5l2 2h5a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" />
+                  </svg>
+                  Open data folder
+                </button>
+
+                <div className="border-t border-slate-700 my-1" />
+
+                {/* Shortcut hints */}
+                <div className="px-3 py-1.5 text-[11px] text-slate-500 uppercase tracking-wider font-semibold">
+                  Keyboard Shortcuts
+                </div>
+                <div className="px-3 py-1.5 flex items-center justify-between text-[13px]">
+                  <span className="text-slate-400">Global Add Task</span>
+                  <kbd className="text-[11px] text-slate-500 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700">Ctrl+Alt+T</kbd>
+                </div>
+                <div className="px-3 py-1.5 flex items-center justify-between text-[13px]">
+                  <span className="text-slate-400">Global Show/Hide</span>
+                  <kbd className="text-[11px] text-slate-500 font-mono bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700">Ctrl+Alt+L</kbd>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
   );
 }
 
