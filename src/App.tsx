@@ -170,13 +170,16 @@ function Header({ showCompleted, toggleShowCompleted }: { showCompleted: boolean
     <header className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-md border-b border-slate-700/80 shadow-sm">
       <div className="max-w-2xl mx-auto px-5 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center shadow-sm">
+            <svg className="w-5 h-5" viewBox="0 0 128 128" fill="none">
+              <rect x="10" y="10" width="108" height="108" rx="24" fill="#ff984f" opacity="0.6" />
+              <rect x="24" y="28" width="80" height="16" rx="8" fill="#FF6B00" />
+              <rect x="34" y="56" width="60" height="16" rx="8" fill="#FFFFFF" fillOpacity="0.8" />
+              <rect x="34" y="84" width="60" height="16" rx="8" fill="#FFFFFF" fillOpacity="0.8" />
             </svg>
           </div>
           <h1 className="text-base font-semibold text-slate-100 tracking-tight">NicTasks</h1>
-          <span className="text-[10px] text-slate-500 font-normal">v0.1.7</span>
+          <span className="text-[10px] text-slate-500 font-normal">v0.1.8</span>
         </div>
         <div className="flex items-center gap-2">
           {/* Show/Hide Done toggle */}
